@@ -24,7 +24,7 @@ After download, compile using at the prompt:
 
 './CARP <set of parameters>'
 
-''''
+````
 Parameters:
 -b: average overlap (no default value)
 -m: maximum overlap (no default value)
@@ -51,7 +51,7 @@ Parameters:
 -W : name of the file containing maps of pairwise overlaps (“overMap.dat” by default)
 -C : name of the file containing characteristics of simulated mixtures (“overBarMax.dat” by default)
 -R: name of the file containing index values (Adjusted Rand index and “AR.dat” by default)
-''''
+````
 
 #### Details
 
@@ -63,18 +63,20 @@ Options `-n` and `-#` specify the sample size of a dataset simulated from every 
 
 #### Examples
 
-% simulate a 3-dimensional 4-component mixture with spherical covariance matrices, equal mixing proportions, maximum overlap 0.1 and average overlap 0.05; generate a sample of size 100 and analyze using "hierclust"
+*simulate a 3-dimensional 4-component mixture with spherical covariance matrices, equal mixing proportions, maximum overlap 0.1 and average overlap 0.05; generate a sample of size 100 and analyze using 'hierclust'*
 
 > ./CARP -m0.1 -b0.05 -p3 -K4 -s -n100 -0hierclust
 
-% simulate a 2-dimensional 4-component mixture with maximum overlap 0.1 and mixing proportions greater or equal than 0.10; generate a sample of size 100
+*simulate a 2-dimensional 4-component mixture with maximum overlap 0.1 and mixing proportions greater or equal than 0.10; generate a sample of size 100*
 > ./CARP -m0.1 -p2 -K4 -z0.10 -n100
 
-% compute the overlap for the 2-dimensional 4-component mixture with parameters specified in "DATA/Pi.dat", "DATA/Mu.dat" and "DATA/LTSigma.dat"; generate a sample of size 100
+*compute the overlap for the 2-dimensional 4-component mixture with parameters specified in "DATA/Pi.dat", "DATA/Mu.dat" and "DATA/LTSigma.dat"; generate a sample of size 100*
 > ./CARP -p2 -K4 -n100
 
-% get help
+*get usage help*
 > ./CARP
+
+Please see Maitra and Melnykov (2010) for methodological details and Melnykov and Maitra (2011) for software implementation details.
 
 ##### Note
 
