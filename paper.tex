@@ -1,0 +1,380 @@
+\documentclass[twoside,11pt]{article}
+
+% Any additional packages needed should be included after jmlr2e.
+% Note that jmlr2e.sty includes epsfig, amssymb, natbib and graphicx,
+% and defines many common macros, such as 'proof' and 'example'.
+%
+% It also sets the bibliographystyle to plainnat; for more information on
+% natbib citation styles, see the natbib documentation, a copy of which
+% is archived at http://www.jmlr.org/format/natbib.pdf
+
+\usepackage{jmlr2e}
+\usepackage{subfigure}
+\usepackage{amsmath}
+\usepackage{wrapfig}
+\usepackage{verbatim}
+% Definitions of handy macros can go here
+
+\newcommand{\bGamma}{\boldsymbol{\Gamma}}
+\newcommand{\bLambda}{\boldsymbol{\Lambda}}
+\newcommand{\bSigma}{\boldsymbol{\Sigma}}
+\newcommand{\bgamma}{\boldsymbol{\gamma}}
+\newcommand{\bmu}{\boldsymbol{\mu}}
+\newcommand{\bx}{\boldsymbol{x}}
+\newcommand{\bX}{\boldsymbol{X}}
+
+
+% Heading arguments are {volume}{year}{pages}{submitted}{published}{author-full-names}
+
+\jmlrheading{?}{200?}{?-??}{04/10}{??/??}{Volodymyr Melnykov and Ranjan Maitra}
+
+% Short headings should be running head and authors last names
+
+\ShortHeadings{\texttt{ClusterEval:} Software for Evaluating Clustering Algorithms}{Melnykov and Maitra}
+\firstpageno{1}
+
+\begin{document}
+
+\title{\texttt{ClusterEval:} Software for Evaluating Clustering Algorithms}
+
+\author{\name Volodymyr Melnykov \email volodymyr.melnykov@ndsu.edu \\
+       \addr Department of Statistics\\
+       North Dakota State University\\
+       Fargo, ND 58102, USA
+       \AND
+       \name Ranjan Maitra \email maitra@iastate.edu \\
+       \addr Department of Statistics\\
+       Iowa State University\\
+       Ames, IA 50011, USA}
+
+\editor{}
+
+\maketitle
+
+\begin{abstract}%   <- trailing '%' for backward compatibility of .sty file
+This paper presents \texttt{ClusterEval}, an open source \texttt{C}
+package for evaluating finite mixture modeling and clustering
+algorithms. With the vast numbers of clustering algorithms available,
+it is important to calibrate performance of each. \texttt{ClusterEval}
+addresses this need by generating datasets of different clustering
+complexity and by assessing the performance of the concerned algorithm
+in terms of its ability to classify each dataset relative to the true
+grouping. This paper briefly discusses the software, and provides
+illustrative examples. \texttt{ClusterEval} is released under the GNU
+GPL license.    
+\end{abstract}
+
+\begin{keywords}
+  Gaussian finite mixture model, \texttt{ClusterEval}, overlap
+\end{keywords}
+
+\section{Introduction}
+The ability to find groups of similar observations in datasets is  
+important for many applications.
+%Multiple applications in agriculture, biology, genetics and other areas
+%have promoted growing interest to clustering and classification
+%problems.
+There are many clustering algorithms, with no uniformly clear winner, 
+thus calibrating the performance of different
+clustering algorithms under different settings is important.
+%The common method for comparing such algorithms is to apply them for
+%popular classification datasets. The origin of every observation in
+%such datasets is known and the competing methods try to outperform the
+%others in the number of correctly classified observations. Meanwhile,
+%this is the usual practice that algorithms perform differently while
+%being tested on various datasets.
+{\tt ClusterEval} provides software to evaluate performance of any
+user-provided clustering algorithm under simulated datasets of specified
+clustering complexity. At its heart is the {\tt C-MixSim} software
+which implements~\citet{maitraandmelnykov09}'s algorithm to simulate
+datasets from Gaussian mixtures of different clustering difficulty.
+% While there is a wide variety of choices for mixing densities,
+% models involving multivariate Gaussian mixtures are the most
+% popular. 
+{\tt ClusterEval} thus provides an integrated software tool which
+generates datasets using {\tt C-MixSim}, uses the clustering algorithm
+being tested on the generated datasets and compares its classification
+performance relative to the true models that generated those
+observations by means of a measure such as the adjusted Rand
+Index. {\tt C-MixSim} is discussed in Section~\ref{cmixsim} while
+Section~\ref{clustereval} details the other parts of the {\tt
+  ClusterEval} package. 
+
+\section{{\tt C-MixSim}: Theory, Algorithms and Illustrative Examples}
+\label{cmixsim}
+There is some available software for simulating datasets to evaluate a
+clustering algorithm's performance. The  \texttt{R} package
+\texttt{clusterGeneration} \citep{qiuandjoe06} generates data
+according to an index that is only defined in
+univariate space. For higher dimensions, the authors suggest
+considering the ``best'' projection in one dimension as an
+approximation to separation between two clusters. A different
+approach is provided by the \texttt{Matlab} code \texttt{OCLUS} of
+\citet{steinleyandhenson05}, which is neither publicly available and
+works only in the presence of the proprietary {\tt Matlab}
+software. Other limitations also exist: {\em e.g.}, no more than three
+clusters can overlap in these datasets, and all groups are required to
+have the same correlation structure. {\tt 
+  C-MixSim} provides software that implements the algorithms in
+\citet{maitraandmelnykov09} to generate datasets from 
+Gaussian mixtures of different numbers of components, dimensions and
+dispersions characterized through summaries of the pairwise overlap
+%\citep{maitraandmelnykov09} 
+that serves as a surrogate measure of clustering complexity. 
+%naturally reflecting the level of difficulty in
+%classification of observations.
+
+\citet{maitraandmelnykov09} define the overlap between any two
+components (say $i$ and $j$) of a mixture density $g(\bx) =
+\sum_{k=1}^K \pi_k \phi(\bx; \bmu_k, \bSigma_k)$ as $\omega_{ij} =
+\omega_{i\mid j} + \omega_{j\mid i}$, where $\omega_{j\mid i}$ is the
+probability of misclassifying an observation from the $i$th component
+into the $j$th one, and $\omega_{i\mid j}$ is defined
+similarly. Also, $\phi(\bx; \bmu_k, 
+\bSigma_k)$ is a multivariate Gaussian density with mean vector
+$\bmu_k$ and covariance matrix $\bSigma_k$. 
+\citet{maitraandmelnykov09} also showed that 
+\begin{equation*}
+\omega_{j\mid i} =  {\rm Pr}_{N_p(\bmu_i,\bSigma_i)}\left[\sum_{\overset{l=1}{l:\lambda_l\neq1}}^p  
+    (\lambda_l - 1) U_l + 2\sum_{\overset{l=1}{l:\lambda_l=1}}^p
+    \delta_lW_l \leq
+    \sum_{\overset{l=1}{l:\lambda_l\neq1}}^p\frac{\lambda_l\delta_l^2}{\lambda_l-1}
+    - \sum_{\overset{l=1}{l:\lambda_l=1}}^p\delta_l^2 + 
+\log{\frac{\pi_j^2\mid\bSigma_i\mid}{\pi_i^2\mid\bSigma_j\mid}}\right], 
+\end{equation*}
+where $\lambda_1,\lambda_2,\ldots,\lambda_p$ and
+$\bgamma_1,\bgamma_2,\ldots,\bgamma_p$  are the eigenvalues and
+eigenvectors of the matrix
+$\bSigma_i^{\frac12}\bSigma_j^{-1}\bSigma_i^{\frac12}$,
+$W_l$'s  are independent $N(0,1)$ random variables, and $U_l$'s are
+independent noncentral-$\chi^2$ random variables with one degree of
+freedom and 
+noncentrality parameter $\lambda^2_l\delta^2_l/(\lambda_l-1)^2$ where
+$\delta_l = \gamma_l'\bSigma_i^{-\frac12}(\bmu_i - \bmu_j)$. {\tt
+  C-MixSim} uses the above and other reductions to efficiently
+compute $\omega_{i \mid j}$ and $\omega_{j \mid i}$ via Algorithm
+AS155 of \citet{davies80} to evaluate probabilities of linear
+combinations of noncentral-$\chi^2$ random variables.
+
+For a $K$-component mixture, there are $K\choose 2$ pairwise overlap
+measures. {\tt C-MixSim} implements~\citet{maitraandmelnykov09}'s
+approach of using two summaries (the average pairwise overlap,
+$\bar\omega$ and the maximum pairwise overlap $\check\omega$) to more
+comprehensively characterize clustering complexity. Specifically, {\tt
+  C-MixSim} generates Gaussian mixtures according to a pre-specified
+$\bar\omega$ or $\check\omega$ or the pre-specified pair
+$(\bar\omega,\check\omega)$. Specifically, it implements Algorithm
+2.2.1 of~\citet{maitraandmelnykov09} to simulate Gaussian mixtures
+corresponding to a given $\bar\omega$ or $\check\omega$, and Algorithm
+2.2.2 of the same paper to simulate Gaussian mixtures corresponding to
+the given pair $(\bar\omega,\check\omega)$. Datasets of required
+sample sizes are then generated from these mixtures.
+ 
+\begin{comment}
+
+The first algorithm generates a mixture model with prespecified
+level of average ($\bar\omega$) or maximum ($\check\omega$)
+overlap:
+%The algorithm consists of the following three steps.
+\begin{enumerate}
+\item \textit{Generating initial parameters.} Generate $K$ mixing proportions,
+  mean vectors and covariance matrices. Compute limiting
+  average ($\bar\omega^{\infty}$) (maximum ($\check\omega^{\infty}$))
+  overlap. If $\bar\omega > \bar\omega^{\infty}$ ($\check\omega >
+  \check\omega^{\infty}$), discard the realization and start with Step 1
+  again.
+\item \textit{Calculating pairwise overlaps.} Compute all pairwise
+  overlaps. Calculate the current average overlap $\hat{\bar\omega}$ (maximum overlap $\hat{\check\omega}$). If the difference between $\hat{\bar\omega}$
+  and $\bar\omega$ ($\hat{\check\omega}$ and $\check\omega$) is
+  negligible, stop the algorithm and provide the current parameters.
+\item \textit{Scaling clusters.} Use root-finding techniques to find
+  a covariance matrix multiplier $c$ such that the difference between
+  $\hat{\bar\omega}(c)$ and $\bar\omega$ ($\hat{\check\omega}(c)$ and
+  $\check\omega$) is negligible.
+% Report the obtained parameters.
+\end{enumerate}
+The second algorithm controls both characteristics, $\bar\omega$ and
+$\check\omega$, simultaneously.
+\begin{enumerate} 
+\item \textit{Initial generation.} Use the first
+  algorithm to obtain the set of parameters that satisfies
+  $\check\omega$ and fix two components that produced the highest
+  overlap; their covariance matrices will not be involved in
+  inflation/deflation process.
+\item \textit{Validity check.} Find the largest value of $c$ (say
+  $c_{\vee}$) such that none of pairwise overlaps
+  $\omega_{ij}(c_{\vee})$ exceeds $\check\omega$. If
+  $\hat{\bar\omega}(c_{\vee}) < \bar\omega$, discard the realization
+  and return to Step 1.
+\item \textit{Limited scaling.} While keeping two fixed components
+  unchanged, apply Step 3 of the first algorithm to the rest of
+  components to reach the desired $\bar\omega$. If the obtained
+  parameters satisfy $\bar\omega$ and $\check\omega$, report
+  them. Otherwise, start with Step 1 again.
+\end{enumerate}
+%\section{Practical Usage}
+%
+%The complete list of package parameters can be found in the file
+%\textit{readme.dat} while their complete description is given in
+%\cite{maitraandmelnykov09}. In this paper, we report details only for
+%the most important parameters:
+%\begin{itemize}
+%\item \textit{ecc}: the largest eccentricity allowed for every covariance
+%  matrix $\bSigma_k$; eccentricity is defined as $e = \sqrt{1 -
+%  d_{(p)}/d_{(1)}}$, where $d_{(p)}$ and $d_{(1)}$ are the largest and
+%  smallest eigenvalues of $\bSigma_k$ respectively ($ecc = 0.90$ by
+%  default);
+%\item \textit{PiLow}: the smallest mixing proportion; if
+%  \textit{PiLow} is greater than its upper bound, equal mixing
+%  proportions are taken (the default is $PiLow = 1.0$ which means
+%  equal proportions);
+%\item \textit{sph}: values $0$ and $1$ specify general and
+%  spherical covariance matrices correspondingly (the default is $0$);
+%\item \textit{Ubound}: the upper bound for Uniform(0, \textit{Ubound})
+%  distribution from which mean vectors are generated ($Ubound
+%    = 1.0$ by default).
+%\end{itemize}
+\end{comment}
+
+Figure~\ref{fig.K100} represents some simulated two-dimensional
+mixture distributions 
+\begin{wrapfigure}{r}{0.40\textwidth}
+  \begin{center}
+    \vspace{-0.35in}
+    \includegraphics[width=0.20\textwidth]{cont10040_}
+  \end{center}
+  \caption{
+    \vspace{-0.3in}Contour plot for $K = 100$, $p = 2$,
+    $\check\omega = 0.4$. }
+  \label{fig.K100}
+\end{wrapfigure}
+$\check\omega = 0.4$. Figure~\ref{fig.ill.ex} illustrates the impact of
+$\check\omega$ and $\bar\omega$ on the level of cluster
+separation. The top row represents small maximum overlap values
+relative to the bottom row. We can see that in plots (d)-(f), the
+value of $\bar\omega$ is mainly driven by few components producing
+large overlaps, while many components commit to $\bar\omega$ in the
+plots (a)-(c). Therefore, we can conclude that overlap in mixtures is
+impacted by both characteristics simultaneously. Thus, clustering algorithms can be studied under different complexity settings.
+%\begin{figure}[h]
+%\centerline{
+%\mbox{
+%\subfigure[$K = 100$, $p = 2$, $\check\omega =
+%0.40$]{\includegraphics[angle=0,totalheight=3in, width=3in]{cont10040}}
+%\subfigure[$K = 6$, $p = 100$ (first 10 presented), $\bar\omega =
+%0.0001$]{\includegraphics[angle=0,totalheight=3in,width=3in]{pdplot100}}}
+%}
+%\caption{Illustrative examples: (a) contour plot and (b) parallel
+%  distribution plot.}
+%\label{fig.ill.ex1}
+%\end{figure}
+%\begin{figure}[h]
+%\centerline{
+%\mbox{
+%\subfigure[$\bar\omega = 0.05$, $\check\omega =
+%0.15$]{\includegraphics[angle=0, totalheight=2in, width=2in]{cont0515}}
+%\subfigure[$\bar\omega = 0.05$ $\check\omega =
+%0.25$]{\includegraphics[angle=0, totalheight=2in, width=2in]{cont0525}}
+%\subfigure[$\bar\omega = 0.05$, $\check\omega =
+%0.035$]{\includegraphics[angle=0,totalheight=2in,width=2in]{cont0535}}
+%}
+%}
+%\caption{Illustrative examples: contour plots for different levels of overlap.}
+%\label{fig.ill.ex2}
+%\end{figure}
+%\begin{wrapfigure}{r}{0.5\textwidth}
+%\mbox{\scalebox{0.5}{\includegraphics{cont10040}}}
+%\caption{Mean}
+%\label{fig.100}
+Table~\ref{time.table} provides the time that was needed to simulate a
+mixture model with various numbers of components and dimensions. Our
+procedure is practical even for multi-component and multi-dimensional
+mixtures. Note that increase in $K$ affects running
+times more than increase in $p$.
+%Meanwhile, in our experiments, we successfully generated mixtures
+%with 1000 components and 100 dimensions.
+The analysis was performed on a machine with two quad-core 
+Intel(R) Xeon(R) X5482 @ 3.20 GHz processors running the 
+%Red Hat Enterprise Linux Server release {\tt 5.3 2.6.18-128.el5xen kernel}
+Fedora 11 release and gcc 4.4.1 suite of compilers.
+%GCC 4.1.2 suite of compilers. 
+\begin{table}[h]
+\caption{Median time and inter-quartile range (in seconds) for
+  obtaining a mixture.}
+\label{time.table}
+\begin{center}
+{
+\begin{tabular}{|c||c|c|c|c|}\hline
+$K$ & $p = 1$, $\check\omega = 0.10$ & $p = 2$, $\check\omega = 0.10$
+ & $p = 3$, $\check\omega = 0.10$ & $p = 5$, $\check\omega = 0.10$\\
+\hline
+\hline
+10 & 11.251 (2.317) & 9.262 (1.863) & 6.540 (0.982) & 0.745 (0.177)\\
+\hline
+100 & 1305.319 (47.367) & 1121.016 (24.580) & 652.892 (15.745) & 74.616 (7.546)\\
+\hline
+\hline
+$K$ & $p = 10$, $\check\omega = 0.10$ & $p = 20$, $\check\omega = 0.10$ & $p = 100$, $\check\omega = 0.01$ & $p = 250$, $\check\omega = 0.0001$ \\
+\hline
+\hline
+10 & 0.274 (0.029)  & 0.386 (0.017) & 13.068 (0.212) & 512.554 (17.986)\\
+\hline
+100 & 19.602 (1.989)  & 31.810 (2.261) & 1114.230 (15.810) & 47837.201 (1420.161)\\
+\hline
+\end{tabular}
+}
+\end{center}
+\end{table}
+
+
+\begin{figure}[h]
+\begin{center}
+\mbox{
+\subfigure[$\bar\omega = 0.05$, $\check\omega =
+0.135$]{\includegraphics[angle=0, totalheight=1.95in, width=1.95in]{cont050135}}
+\subfigure[$\bar\omega = 0.01$ $\check\omega =
+0.027$]{\includegraphics[angle=0, totalheight=1.95in, width=1.95in]{cont010027}}
+\subfigure[$\bar\omega = 0.001$, $\check\omega =
+0.0027$]{\includegraphics[angle=0,totalheight=1.95in, width=1.95in]{cont0010027}}
+}
+\mbox{
+\subfigure[$\bar\omega = 0.05$, $\check\omega =
+0.198$]{\includegraphics[angle=0, totalheight=1.95in, width=1.95in]{cont050198}}
+\subfigure[$\bar\omega = 0.01$ $\check\omega =
+0.036$]{\includegraphics[angle=0, totalheight=1.95in, width=1.95in]{cont010036}}
+\subfigure[$\bar\omega = 0.001$, $\check\omega =
+0.0036$]{\includegraphics[angle=0,totalheight=1.95in, width=1.95in]{cont0010036}}
+}
+\end{center}
+\caption{Contour plots for different levels of average and maximum overlap.}
+\label{fig.ill.ex}
+\end{figure}
+
+
+\section{Evaluating the performance of clustering algorithms}
+\label{clusteval}
+The second phase of {\tt ClustEval} is to evaluate performance of the
+clustering algorithms on each of the simulated datasets. 
+
+\section{Implementation}
+\texttt{ClusterEval} is implemented in ANSI/ISO-compliant \texttt{C} and
+also available on 
+{\tt www.mloss.org}. Complete details on usage, examples and
+parameters are provided in the package's manual and \texttt{README} file. A
+related {\tt R} package {\tt MixSim} is publicly available from \texttt{www.R-project.org}.
+
+\section{Conclusions}
+
+The presented package \texttt{ClusterEval} is a powerful and user-friendly open source tool for evaluating performance of clustering algorithms. It relies on simulating Gaussian mixture models with prespecified complexity level. \texttt{ClusterEval} has been successfully tested in multi-component and multi-dimensional mixture simulation. Thus, the proposed package provides a convenient instrument for calibrating clustering and classification algorithms.
+\texttt{ClusterEval} can be also used for Gaussian mixture and dataset simulation without running a clustering procedure and the evaluation step. Another feature of this package is that it can calculate the pairwise separation between identified groups in clustered or classified data when given the class means, dispersions and relative frequencies.
+ 
+% Acknowledgements should go at the end, before appendices and references
+
+\acks{We acknowledge partial support for this project from the NSF
+  grant \#DMS-0437555}.
+
+
+\vskip 0.2in
+\bibliography{references}
+
+\end{document}
